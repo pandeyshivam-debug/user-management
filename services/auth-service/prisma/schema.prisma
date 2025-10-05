@@ -1,0 +1,38 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url = env("DATABASE_URL")
+}
+
+enum Role {
+    SUPER_ADMIN
+    SITE_ADMIN
+    OPERATOR
+    CLIENT_ADMIN
+    CLIENT_USER
+}
+
+model User {
+    id          String      @id @default(uuid())
+    email       String      @unique
+    phone       String?     @unique
+    name        String
+    password    String
+    isVerified  Boolean     @default(false)
+    role        Role        @default(CLIENT_USER)
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+
+    otps            OTP[]
+}
+
+
+model OTP {
+    id      Int     @id @default(autoincrement())
+    userId  String
+    User    User    @relation(fields: [userId], references: [id])
+    used    Boolean @default(false)
+}
