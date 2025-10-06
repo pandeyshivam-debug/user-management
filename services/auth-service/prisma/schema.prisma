@@ -27,12 +27,40 @@ model User {
     updatedAt   DateTime    @updatedAt
 
     otps            OTP[]
+    invitations     Invitation[] @relation("InvitedBy")
+    refreshTokens   RefreshToken[]
 }
 
+model Invitation {
+    id         String   @id @default(uuid())
+    email      String
+    invitedBy  String
+    Inviter    User     @relation("InvitedBy", fields: [invitedBy], references: [id])
+    role       Role
+    used       Boolean  @default(false)
+    token      String   @unique
+    expiresAt  DateTime
+    createdAt  DateTime @default(now())
+}
+
+model RefreshToken {
+    id           String   @id @default(uuid())
+    userId       String
+    User         User     @relation(fields: [userId], references: [id])
+    tokenHash    String
+    revoked      Boolean  @default(false)
+    createdAt    DateTime @default(now())
+    expiresAt    DateTime
+    replacedById String?
+}
 
 model OTP {
-    id      Int     @id @default(autoincrement())
-    userId  String
-    User    User    @relation(fields: [userId], references: [id])
-    used    Boolean @default(false)
+    id        Int      @id @default(autoincrement())
+    userId    String
+    User      User     @relation(fields: [userId], references: [id])
+    code      String
+    type      String
+    used      Boolean  @default(false)
+    expiresAt DateTime
+    createdAt DateTime @default(now())
 }
