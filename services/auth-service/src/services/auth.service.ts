@@ -144,7 +144,7 @@ export const rotateRefreshToken = async (incomingRefreshToken: string) => {
             data: {
                 id: newTokenId,
                 userId: record.userId,
-                tokenHash: newTokenId,
+                tokenHash: newTokenHash,
                 expiresAt: newExpires
             }
         })
