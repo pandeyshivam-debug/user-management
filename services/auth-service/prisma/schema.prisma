@@ -26,7 +26,7 @@ model User {
     createdAt   DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
 
-    otps            OTP[]
+    otps            otp[]
     invitations     Invitation[] @relation("InvitedBy")
     refreshTokens   RefreshToken[]
 }
@@ -54,7 +54,7 @@ model RefreshToken {
     replacedById String?
 }
 
-model OTP {
+model otp {
     id        Int      @id @default(autoincrement())
     userId    String
     User      User     @relation(fields: [userId], references: [id])

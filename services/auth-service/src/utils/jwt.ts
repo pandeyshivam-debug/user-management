@@ -10,8 +10,8 @@ export const generateAccessToken = (userId: String) => {
     return jwt.sign({userId}, JWT_SECRET, { expiresIn: "15m" })
 }
 
-export const generateRefreshToken = (userId: String) => {
-    return jwt.sign({userId}, JWT_SECRET, { expiresIn: "7d" })
+export const generateRefreshToken = (userId: String, tokenId: string) => {
+    return jwt.sign({userId, tokenId}, JWT_SECRET, { expiresIn: "7d" })
 }
 
 export const verifyToken = (token: string): any => {
