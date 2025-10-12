@@ -6,7 +6,9 @@ import {
     loginSchema,
     refreshSchema,
     requestResetSchema,
-    confirmResetSchema
+    confirmResetSchema,
+    requestOTPSchema,
+    verifyOTPSchema
 } from '../middleware/validator.middleware'
 
 export const invite = async (req: Request, res: Response, next: NextFunction) => {
@@ -32,7 +34,16 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const parsed = loginSchema.parse(req.body)
-        const result = await authService.login(parsed.email, parsed.password)
+        const result = await authService.login(parsed.email, parsed.password, parsed.totp)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}
+
+export const enable2FA = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await authService.enable2FA(req.user!.id)
         res.json(result)
     } catch (err) {
         next(err)
@@ -76,6 +87,26 @@ export const confirmPasswordReset = async (req: Request, res: Response, next: Ne
         const parsed = confirmResetSchema.parse(req.body)
         await authService.confirmPasswordReset(parsed.email, parsed.code, parsed.newPassword)
         res.json({ message: 'Password reset successful' })
+    } catch (err) {
+        next(err)
+    }
+}
+
+export const requestOTP = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const parsed = requestOTPSchema.parse(req.body)
+        await authService.requestLoginOTP(parsed.email)
+        res.json({ message: 'If that email exists, we sent an OTP' })
+    } catch (err) {
+        next(err)
+    }
+}
+
+export const verifyOTP = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const parsed = verifyOTPSchema.parse(req.body)
+        const result = await authService.verifyLoginOTP(parsed.email, parsed.code)
+        res.json(result)
     } catch (err) {
         next(err)
     }

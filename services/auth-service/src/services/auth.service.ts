@@ -4,6 +4,7 @@ import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils
 import { sendMail } from '../utils/mailer'
 import crypto from 'crypto'
 import { compare } from 'bcryptjs'
+import { generateTOTPSecret, verifyTOTP } from '../utils/totp'
 
 const REFRESH_TOKEN_EXPIRES_DAYS = 7
 const INVITE_EXPIRES_HOURS = 72
@@ -92,12 +93,18 @@ export const registerWithInvitation = async (token: string, name: string, passwo
     }
 }
 
-export const login = async (email: string, password: string) => {
+export const login = async (email: string, password: string, totp?: string) => {
     const user = await prisma.user.findUnique({where: {email}})
     if (!user) throw { status: 400, message: 'Invalid credentials' }
 
     const ok = await comparePassword(password, user.password)
     if (!ok) throw { status: 400, message: 'Invalid credentials' }
+
+    if(user.totpSecret) {
+        if(!totp) throw { status: 400, message: 'TOTP required' }
+        const validTotp = verifyTOTP(user.totpSecret, totp)
+        if(!validTotp) throw { status: 400, message: 'Invalid TOTP' }
+    }
 
     const accessToken = generateAccessToken(user.id)
 
@@ -116,6 +123,16 @@ export const login = async (email: string, password: string) => {
     })
 
     return { accessToken, refreshToken: refreshJwt }
+}
+
+export const enable2FA = async (userId: string) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if(!user) throw { status: 404, message: 'User not found' }
+
+    const secret = generateTOTPSecret(user.email)
+    await prisma.user.update({ where: { id: userId }, data: { totpSecret: secret.base32 } })
+
+    return { message: 'TOTP 2FA enabled', secret: secret.base32, otpauthUrl: secret.otpauth_url }
 }
 
 export const rotateRefreshToken = async (incomingRefreshToken: string) => {
@@ -167,7 +184,7 @@ export const requestPasswordReset = async (email: string) => {
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) return // don't reveal user existence
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString() // 6 digits
+    const code = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + OTP_EXPIRES_MINUTES * 60 * 1000)
 
     await prisma.otp.create({
@@ -196,4 +213,38 @@ export const confirmPasswordReset = async (email: string, code: string, newPassw
     const hashed = await hashPassword(newPassword)
     await prisma.user.update({ where: { id: user.id }, data: { password: hashed } })
     await prisma.otp.update({ where: { id: otp.id }, data: { used: true } })
+}
+
+export const requestLoginOTP = async (email: string) => {
+    const user = await prisma.user.findUnique({ where: { email } })
+    if(!user) return
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString()
+    const expiresAt = new Date(Date.now() + OTP_EXPIRES_MINUTES * 60 * 1000)
+
+    await prisma.otp.create({ data: { userId: user.id, code, type: 'LOGIN', expiresAt } })
+    await sendMail(user.email, 'Login OTP', `Your login code is ${code}`)
+}
+
+export const verifyLoginOTP = async (email: string, code: string) => {
+    const user = await prisma.user.findUnique({ where: { email } })
+    if(!user) throw { status: 400, message: 'Invalid OTP' }
+
+    const otp = await prisma.otp.findFirst({
+        where: { userId: user.id, code, type: 'LOGIN', used: false },
+        orderBy: { createdAt: 'desc' }
+    })
+    if(!otp || otp.expiresAt < new Date()) throw { status: 400, message: 'Invalid or expired OTP' }
+
+    await prisma.otp.update({ where: { id: otp.id }, data: { used: true } })
+
+    const accessToken = generateAccessToken(user.id)
+    const tokenId = crypto.randomUUID()
+    const refreshJwt = generateRefreshToken(user.id, tokenId)
+    const tokenHash = await hashPassword(refreshJwt)
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000)
+
+    await prisma.refreshToken.create({ data: { id: tokenId, userId: user.id, tokenHash, expiresAt } })
+
+    return { accessToken, refreshToken: refreshJwt }
 }

@@ -32,6 +32,9 @@ importers:
       prisma:
         specifier: ^6.16.2
         version: 6.16.2(typescript@5.9.2)
+      speakeasy:
+        specifier: ^2.0.0
+        version: 2.0.0
       zod:
         specifier: ^4.1.11
         version: 4.1.11
@@ -51,6 +54,9 @@ importers:
       '@types/nodemailer':
         specifier: ^7.0.2
         version: 7.0.2
+      '@types/speakeasy':
+        specifier: ^2.0.10
+        version: 2.0.10
       '@types/supertest':
         specifier: ^6.0.3
         version: 6.0.3
@@ -810,6 +816,9 @@ packages:
   '@types/serve-static@1.15.8':
     resolution: {integrity: sha512-roei0UY3LhpOJvjbIP6ZZFngyLKl5dskOtDhxY5THRSpO+ZI+nzJ+m5yUMzGrp89YRa7lvknKkMYjqQFGwA7Sg==}
 
+  '@types/speakeasy@2.0.10':
+    resolution: {integrity: sha512-QVRlDW5r4yl7p7xkNIbAIC/JtyOcClDIIdKfuG7PWdDT1MmyhtXSANsildohy0K+Lmvf/9RUtLbNLMacvrVwxA==}
+
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
 
@@ -1009,6 +1018,9 @@ packages:
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
+
+  base32.js@0.0.1:
+    resolution: {integrity: sha512-EGHIRiegFa62/SsA1J+Xs2tIzludPdzM064N9wjbiEgHnGnJ1V0WEpA4pEwCYT5nDvZk3ubf0shqaCS7k6xeUQ==}
 
   baseline-browser-mapping@2.8.6:
     resolution: {integrity: sha512-wrH5NNqren/QMtKUEEJf7z86YjfqW/2uw3IL3/xpqZUC95SSVIFXYQeeGjL6FT/X68IROu6RMehZQS5foy2BXw==}
@@ -2138,6 +2150,10 @@ packages:
   source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
+
+  speakeasy@2.0.0:
+    resolution: {integrity: sha512-lW2A2s5LKi8rwu77ewisuUOtlCydF/hmQSOJjpTqTj1gZLkNgTaYnyvfxy2WBr4T/h+9c4g8HIITfj83OkFQFw==}
+    engines: {node: '>= 0.10.0'}
 
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
@@ -3679,6 +3695,10 @@ snapshots:
       '@types/node': 24.5.2
       '@types/send': 0.17.5
 
+  '@types/speakeasy@2.0.10':
+    dependencies:
+      '@types/node': 24.5.2
+
   '@types/stack-utils@2.0.3': {}
 
   '@types/strip-bom@3.0.0': {}
@@ -3861,6 +3881,8 @@ snapshots:
       babel-preset-current-node-syntax: 1.2.0(@babel/core@7.28.4)
 
   balanced-match@1.0.2: {}
+
+  base32.js@0.0.1: {}
 
   baseline-browser-mapping@2.8.6: {}
 
@@ -5146,6 +5168,10 @@ snapshots:
       source-map: 0.6.1
 
   source-map@0.6.1: {}
+
+  speakeasy@2.0.0:
+    dependencies:
+      base32.js: 0.0.1
 
   sprintf-js@1.0.3: {}
 

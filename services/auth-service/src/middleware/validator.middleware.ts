@@ -14,7 +14,8 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
     email: z.email(),
-    password: z.string().min(1)
+    password: z.string().min(1),
+    totp: z.string().optional()
 })
 
 export const refreshSchema = z.object({
@@ -30,3 +31,6 @@ export const confirmResetSchema = z.object({
     code: z.string(),
     newPassword: z.string().min(8)
 })
+
+export const requestOTPSchema = z.object({ email: z.string().email() })
+export const verifyOTPSchema = z.object({ email: z.string().email(), code: z.string() })
