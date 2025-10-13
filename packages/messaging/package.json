@@ -1,0 +1,15 @@
+{
+  "name": "@myorg/messaging",
+  "version": "1.0.0",
+  "main": "src/rabbitMQ.ts",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.17.1",
+  "dependencies": {
+    "amqplib": "^0.10.9"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.7"
+  }
+}
