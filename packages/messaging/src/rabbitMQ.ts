@@ -4,7 +4,7 @@ let channel: amqplib.Channel
 
 export const connectRabbitMQ = async () => {
     if (channel) return channel
-    const conn = await amqplib.connect('amqp://localhost')
+    const conn = await amqplib.connect(process.env.RABBITMQ_URL!)
     channel = await conn.createChannel()
     await channel.assertExchange('events', 'topic', {durable: true})
     return channel
