@@ -17,4 +17,10 @@ router.post('/invite', authenticate, requireRoles(['SUPER_ADMIN', 'SITE_ADMIN', 
 
 router.post('/logout', ctrl.logout)
 
+router.post('/otp/request', ctrl.requestOTP)
+
+router.post('/otp/verify', ctrl.verifyOTP)
+
+router.post('/2fa/enable', authenticate, ctrl.enable2FA)
+
 export default router 
