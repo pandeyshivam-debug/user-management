@@ -248,3 +248,13 @@ export const verifyLoginOTP = async (email: string, code: string) => {
 
     return { accessToken, refreshToken: refreshJwt }
 }
+
+export const verify2FA = async (userId: string, code: string) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || !user.totpSecret) throw { status: 400, message: '2FA not enabled' }
+
+    const isValid = verifyTOTP(user.totpSecret, code)
+    if (!isValid) throw { status: 400, message: 'Invalid TOTP code' }
+
+    return { message: '2FA code verified successfully' }
+}

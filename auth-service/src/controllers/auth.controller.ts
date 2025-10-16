@@ -50,6 +50,17 @@ export const enable2FA = async (req: Request, res: Response, next: NextFunction)
     }
 }
 
+export const verify2FA = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { code } = req.body
+        const result = await authService.verify2FA(req.user!.id, code)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}
+
+
 export const refresh = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const parsed = refreshSchema.parse(req.body)

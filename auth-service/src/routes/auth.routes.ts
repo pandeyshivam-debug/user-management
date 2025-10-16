@@ -22,5 +22,6 @@ router.post('/otp/request', ctrl.requestOTP)
 router.post('/otp/verify', ctrl.verifyOTP)
 
 router.post('/2fa/enable', authenticate, ctrl.enable2FA)
+router.post('/2fa/verify', authenticate, ctrl.verify2FA)
 
 export default router 
