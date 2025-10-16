@@ -1,0 +1,36 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum Role {
+    SUPER_ADMIN
+    SITE_ADMIN
+    OPERATOR
+    CLIENT_ADMIN
+    CLIENT_USER
+}
+
+model User {
+    id    String @id @default(uuid())
+    email String @unique
+    role  Role   @default(CLIENT_USER)
+
+    invitations     Invitation[] @relation("InvitedBy")
+}
+
+model Invitation {
+    id         String   @id @default(uuid())
+    email      String
+    invitedBy  String
+    Inviter    User     @relation("InvitedBy", fields: [invitedBy], references: [id])
+    role       Role
+    used       Boolean  @default(false)
+    token      String   @unique
+    expiresAt  DateTime
+    createdAt  DateTime @default(now())
+}
