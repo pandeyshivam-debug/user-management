@@ -5,6 +5,7 @@ import { sendMail } from '../utils/mailer'
 import crypto from 'crypto'
 import { compare } from 'bcryptjs'
 import { generateTOTPSecret, verifyTOTP } from '../utils/totp'
+
 import axios from 'axios'
 
 const REFRESH_TOKEN_EXPIRES_DAYS = 7
@@ -131,7 +132,6 @@ export const registerWithInvitation = async (invite: any, name: string, password
 	})
 
 	const accessToken = generateAccessToken(user.id)
-
 	return {
 		user: { id: user.id, email: user.email, role: user.role },
 		accessToken,
