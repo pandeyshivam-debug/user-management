@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express"
 import * as authService from '../services/auth.service'
 import {
-    inviteSchema,
+    // inviteSchema,
     registerSchema,
     loginSchema,
     refreshSchema,
@@ -10,21 +10,28 @@ import {
     requestOTPSchema,
     verifyOTPSchema
 } from '../middleware/validator.middleware'
+import axios from "axios"
 
-export const invite = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const parsed = inviteSchema.parse(req.body)
-        const invite = await authService.createInvitation(req.user!.id, parsed.email, parsed.role)
-        res.json({ invite: { id: invite.id, email: invite.email, role: invite.role, expiresAt: invite.expiresAt } })
-    } catch (err) {
-        next(err)
-    }
-}
+const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL ?? 'http://localhost:3002/api/v1/invites'
+
+// export const invite = async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//         const parsed = inviteSchema.parse(req.body)
+//         const invite = await authService.createInvitation(req.user!.id, parsed.email, parsed.role)
+//         res.json({ invite: { id: invite.id, email: invite.email, role: invite.role, expiresAt: invite.expiresAt } })
+//     } catch (err) {
+//         next(err)
+//     }
+// }
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const parsed = registerSchema.parse(req.body)
-        const result = await authService.registerWithInvitation(parsed.token, parsed.name, parsed.password, parsed.phone)
+        const inviteResponse = await axios.post(`${INVITE_SERVICE_URL}/api/v1/invite/verify`, {
+            token: parsed.token
+        })
+        const invite = inviteResponse.data.invite
+        const result = await authService.registerWithInvitation(invite, parsed.name, parsed.password, parsed.phone)
         res.json(result)
     } catch (err) {
         next(err)

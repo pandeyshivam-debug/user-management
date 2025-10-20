@@ -5,93 +5,142 @@ import { sendMail } from '../utils/mailer'
 import crypto from 'crypto'
 import { compare } from 'bcryptjs'
 import { generateTOTPSecret, verifyTOTP } from '../utils/totp'
+import axios from 'axios'
 
 const REFRESH_TOKEN_EXPIRES_DAYS = 7
-const INVITE_EXPIRES_HOURS = 72
 const OTP_EXPIRES_MINUTES = 15
 
-const allowedInvites: Record<string, string[]> = {
-    SUPER_ADMIN: ['SITE_ADMIN', 'OPERATOR', 'CLIENT_ADMIN'],
-    SITE_ADMIN: ['OPERATOR', 'CLIENT_ADMIN'],
-    OPERATOR: ['CLIENT_ADMIN']
+const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL ?? 'http://localhost:3002/api/v1/invites'
+
+// const allowedInvites: Record<string, string[]> = {
+//     SUPER_ADMIN: ['SITE_ADMIN', 'OPERATOR', 'CLIENT_ADMIN'],
+//     SITE_ADMIN: ['OPERATOR', 'CLIENT_ADMIN'],
+//     OPERATOR: ['CLIENT_ADMIN']
+// }
+
+// export const createInvitation = async (inviterId: string, email: string, role: string) => {
+//     const inviter = await prisma.user.findUnique({where: {id: inviterId}})
+//     if(!inviter) throw {status: 404, message: 'Inviter not found'}
+//     const allowed = allowedInvites[inviter.role]
+//     if(!allowed || !allowed.includes(role)) throw {status: 403, message: 'Not allowed to invite this role'}
+
+//     const token = crypto.randomBytes(24).toString('hex')
+//     const expiresAt = new Date(Date.now() + INVITE_EXPIRES_HOURS * 60 * 60 * 1000)
+
+//     const invite = await prisma.invitation.create({
+//         data: {
+//             email,
+//             invitedBy: inviterId,
+//             role: role as any,
+//             token,
+//             expiresAt
+//         }
+//     })
+
+//     const link = `http://localhost:3000/register?token=${token}`
+//     await sendMail(
+//         email,
+//         'You are invited',
+//         `You have been invited. Register using this link: ${link}`,
+//         `<p>You have been invited. Register using this link: <a href="${link}">${link}</a></p>`
+//     )
+//     return invite
+// }
+
+// export const registerWithInvitation = async (token: string, name: string, password: string, phone?: string) => {
+//     const invite = await prisma.invitation.findUnique({where: {token}})
+//     if(!invite) throw {status: 400, message: 'Invalid invitation token'}
+//     if(invite.used) throw {status: 400, message: 'Invitation already used'}
+//     if(invite.expiresAt < new Date()) throw {status: 400, message: 'Invitation expired'}
+
+//     const existing = await prisma.user.findUnique({where: {email: invite.email}})
+//     if (existing) throw {status: 400, message: 'User with this email already exists'}
+
+//     const hashed = await hashPassword(password)
+
+//     const user = await prisma.user.create({
+//         data: {
+//             email: invite.email,
+//             name,
+//             password: hashed,
+//             phone: phone ?? null,
+//             role: invite.role,
+//             isVerified: true
+//         }
+//     })
+
+//     await prisma.invitation.update({where: {id: invite.id}, data: {used: true}})
+
+//     const tokenId = crypto.randomUUID()
+//     const refreshJwt = generateRefreshToken(user.id, tokenId)
+//     const tokenHash = await hashPassword(refreshJwt)
+//     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000)
+
+//     await prisma.refreshToken.create({
+//         data: {
+//             id: tokenId,
+//             userId: user.id,
+//             tokenHash,
+//             expiresAt
+//         }
+//     })
+
+//     const accessToken = generateAccessToken(user.id)
+//     return {
+//         user: {
+//             id: user.id,
+//             email: user.email,
+//             role: user.role
+//         }, accessToken, refreshToken: refreshJwt
+//     }
+// }
+
+export const registerWithInvitation = async (invite: any, name: string, password: string, phone?: string) => {
+	const existing = await prisma.user.findUnique({ where: { email: invite.email } })
+	if (existing) throw { status: 400, message: 'User with this email already exists' }
+
+	const hashed = await hashPassword(password)
+	const user = await prisma.user.create({
+	data: {
+		email: invite.email,
+		name,
+		password: hashed,
+		phone: phone ?? null,
+		role: invite.role,
+		isVerified: true
+	}
+	})
+
+	// Mark invitation as used via invite service
+	await axios.post(`${INVITE_SERVICE_URL}/api/v1/invites/mark-used`, {
+		inviteId: invite.id
+	})
+
+	const tokenId = crypto.randomUUID()
+	const refreshJwt = generateRefreshToken(user.id, tokenId)
+	const tokenHash = await hashPassword(refreshJwt)
+	const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000)
+
+	await prisma.refreshToken.create({
+	data: {
+		id: tokenId,
+		userId: user.id,
+		tokenHash,
+		expiresAt
+	}
+	})
+
+	const accessToken = generateAccessToken(user.id)
+
+	return {
+		user: { id: user.id, email: user.email, role: user.role },
+		accessToken,
+		refreshToken: refreshJwt
+	}
 }
 
-export const createInvitation = async (inviterId: string, email: string, role: string) => {
-    const inviter = await prisma.user.findUnique({where: {id: inviterId}})
-    if(!inviter) throw {status: 404, message: 'Inviter not found'}
-    const allowed = allowedInvites[inviter.role]
-    if(!allowed || !allowed.includes(role)) throw {status: 403, message: 'Not allowed to invite this role'}
+// Remove createInvitation function entirely
 
-    const token = crypto.randomBytes(24).toString('hex')
-    const expiresAt = new Date(Date.now() + INVITE_EXPIRES_HOURS * 60 * 60 * 1000)
-
-    const invite = await prisma.invitation.create({
-        data: {
-            email,
-            invitedBy: inviterId,
-            role: role as any,
-            token,
-            expiresAt
-        }
-    })
-
-    const link = `http://localhost:3000/register?token=${token}`
-    await sendMail(
-        email,
-        'You are invited',
-        `You have been invited. Register using this link: ${link}`,
-        `<p>You have been invited. Register using this link: <a href="${link}">${link}</a></p>`
-    )
-    return invite
-}
-
-export const registerWithInvitation = async (token: string, name: string, password: string, phone?: string) => {
-    const invite = await prisma.invitation.findUnique({where: {token}})
-    if(!invite) throw {status: 400, message: 'Invalid invitation token'}
-    if(invite.used) throw {status: 400, message: 'Invitation already used'}
-    if(invite.expiresAt < new Date()) throw {status: 400, message: 'Invitation expired'}
-
-    const existing = await prisma.user.findUnique({where: {email: invite.email}})
-    if (existing) throw {status: 400, message: 'User with this email already exists'}
-
-    const hashed = await hashPassword(password)
-
-    const user = await prisma.user.create({
-        data: {
-            email: invite.email,
-            name,
-            password: hashed,
-            phone: phone ?? null,
-            role: invite.role,
-            isVerified: true
-        }
-    })
-
-    await prisma.invitation.update({where: {id: invite.id}, data: {used: true}})
-
-    const tokenId = crypto.randomUUID()
-    const refreshJwt = generateRefreshToken(user.id, tokenId)
-    const tokenHash = await hashPassword(refreshJwt)
-    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000)
-
-    await prisma.refreshToken.create({
-        data: {
-            id: tokenId,
-            userId: user.id,
-            tokenHash,
-            expiresAt
-        }
-    })
-
-    const accessToken = generateAccessToken(user.id)
-    return {
-        user: {
-            id: user.id,
-            email: user.email,
-            role: user.role
-        }, accessToken, refreshToken: refreshJwt
-    }
-}
 
 export const login = async (email: string, password: string, totp?: string) => {
     const user = await prisma.user.findUnique({where: {email}})
@@ -257,4 +306,37 @@ export const verify2FA = async (userId: string, code: string) => {
     if (!isValid) throw { status: 400, message: 'Invalid TOTP code' }
 
     return { message: '2FA code verified successfully' }
+}
+
+
+///////////////////////////////////////////////////////
+export const validateAccessToken = async (token: string) => {
+	const payload = verifyToken(token)
+	if (!payload || !payload.userId) {
+		throw { status: 401, message: 'Invalid token' }
+	}
+
+	const user = await prisma.user.findUnique({
+	where: { id: payload.userId },
+		select: { id: true, email: true, role: true, name: true }
+	})
+
+	if (!user) {
+		throw { status: 401, message: 'User not found' }
+	}
+
+	return user
+}
+
+export const getUserById = async (userId: string) => {
+	const user = await prisma.user.findUnique({
+		where: { id: userId },
+		select: { id: true, email: true, role: true, name: true }
+	})
+
+	if (!user) {
+		throw { status: 404, message: 'User not found' }
+	}
+
+	return user
 }
