@@ -7,16 +7,15 @@ const INVITE_EXPIRES_HOURS = 72
 const allowedInvites: Record<string, string[]> = {
 	'SUPER_ADMIN': ['SITE_ADMIN', 'OPERATOR', 'CLIENT_ADMIN'],
 	'SITE_ADMIN': ['OPERATOR', 'CLIENT_ADMIN'],
-	'OPERATOR': ['CLIENT_ADMIN']
+	'OPERATOR': ['CLIENT_ADMIN'],
+	'CLIENT_ADMIN': ['CLIENT_USER']
 }
 
 export const createInvitation = async (inviterId: string, email: string, role: string) => {
-  // Get inviter details from auth service (could be cached)
 	const inviter = await prisma.user.findUnique({ where: { id: inviterId } })
 	if (!inviter) {
 		throw { status: 404, message: 'Inviter not found' }
 	}
-
 	const allowed = allowedInvites[inviter.role]
 	if (!allowed || !allowed.includes(role)) {
 		throw { status: 403, message: 'Not allowed to invite this role' }
@@ -42,6 +41,7 @@ export const createInvitation = async (inviterId: string, email: string, role: s
 		`You have been invited. Register using this link: ${link}`,
 		`<p>You have been invited. Register using this link: <a href="${link}">${link}</a></p>`
 	)
+	console.log(`Invite token: ${token}`)
 
 	return invite
 }
