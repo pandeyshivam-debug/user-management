@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express"
 import * as authService from '../services/auth.service'
 import {
-    // inviteSchema,
     registerSchema,
     loginSchema,
     refreshSchema,
@@ -12,17 +11,7 @@ import {
 } from '../middleware/validator.middleware'
 import axios from "axios"
 
-const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL ?? 'http://localhost:3002/api/v1/invites'
-
-// export const invite = async (req: Request, res: Response, next: NextFunction) => {
-//     try {
-//         const parsed = inviteSchema.parse(req.body)
-//         const invite = await authService.createInvitation(req.user!.id, parsed.email, parsed.role)
-//         res.json({ invite: { id: invite.id, email: invite.email, role: invite.role, expiresAt: invite.expiresAt } })
-//     } catch (err) {
-//         next(err)
-//     }
-// }
+const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL!
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
