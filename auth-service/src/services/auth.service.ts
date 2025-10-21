@@ -222,6 +222,24 @@ export const verify2FA = async (userId: string, code: string) => {
     return { message: '2FA code verified successfully' }
 }
 
+export const validateAccessToken = async (token: string) => {
+	const payload = verifyToken(token)
+	if (!payload || !payload.userId) {
+		throw { status: 401, message: 'Invalid token' }
+	}
+
+	const user = await prisma.user.findUnique({
+	where: { id: payload.userId },
+		select: { id: true, email: true, role: true, name: true }
+	})
+
+	if (!user) {
+		throw { status: 401, message: 'User not found' }
+	}
+
+	return user
+}
+
 export const getUserById = async (userId: string) => {
 	const user = await prisma.user.findUnique({
 		where: { id: userId },
