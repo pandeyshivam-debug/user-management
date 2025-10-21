@@ -63,7 +63,8 @@ The system supports the following roles:
 - SUPER_ADMIN
 - SITE_ADMIN
 - OPERATOR
-- USER (default)
+- CLIENT_ADMIN
+- CLIENT_USER (default)
 
 ## Technical Stack
 
