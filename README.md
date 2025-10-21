@@ -15,6 +15,15 @@ This project consists of two main microservices:
 
 The authentication service handles all user authentication and identity management.
 
+## Technical Stack
+
+- **Language**: TypeScript
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: PostgreSQL with Prisma ORM
+- **Package Manager**: pnpm
+- **Authentication**: JWT (JSON Web Tokens)
+
 #### Features:
 - User registration and login
 - JWT-based authentication
@@ -65,15 +74,6 @@ The system supports the following roles:
 - OPERATOR
 - CLIENT_ADMIN
 - CLIENT_USER (default)
-
-## Technical Stack
-
-- **Language**: TypeScript
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: PostgreSQL with Prisma ORM
-- **Package Manager**: pnpm
-- **Authentication**: JWT (JSON Web Tokens)
 
 ## Project Structure
 
