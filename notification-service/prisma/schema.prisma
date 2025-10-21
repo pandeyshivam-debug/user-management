@@ -1,0 +1,24 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+}
+
+model Notification {
+    id              String   @id @default(auto()) @map("_id") @db.ObjectId
+    type            String   // e.g., "USER_REGISTERED", "INVITATION_ACCEPTED"
+    recipientEmail  String
+    recipientName   String?
+    inviteeEmail    String   // Email of the person who registered
+    inviteeName     String   // Name of the person who registered
+    inviteeRole     String   // Role assigned to the new user
+    sent            Boolean  @default(false)
+    sentAt          DateTime?
+    createdAt       DateTime @default(now())
+
+    @@index([sent])
+    @@index([recipientEmail])
+}
