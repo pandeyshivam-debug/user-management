@@ -5,6 +5,7 @@ import { sendMail } from '../utils/mailer'
 import crypto from 'crypto'
 import { compare } from 'bcryptjs'
 import { generateTOTPSecret, verifyTOTP } from '../utils/totp'
+import amqp from 'amqplib'
 
 import axios from 'axios'
 
@@ -13,88 +14,6 @@ const OTP_EXPIRES_MINUTES = 15
 
 const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL ?? 'http://localhost:3002/api/v1/invites'
 
-// const allowedInvites: Record<string, string[]> = {
-//     SUPER_ADMIN: ['SITE_ADMIN', 'OPERATOR', 'CLIENT_ADMIN'],
-//     SITE_ADMIN: ['OPERATOR', 'CLIENT_ADMIN'],
-//     OPERATOR: ['CLIENT_ADMIN']
-// }
-
-// export const createInvitation = async (inviterId: string, email: string, role: string) => {
-//     const inviter = await prisma.user.findUnique({where: {id: inviterId}})
-//     if(!inviter) throw {status: 404, message: 'Inviter not found'}
-//     const allowed = allowedInvites[inviter.role]
-//     if(!allowed || !allowed.includes(role)) throw {status: 403, message: 'Not allowed to invite this role'}
-
-//     const token = crypto.randomBytes(24).toString('hex')
-//     const expiresAt = new Date(Date.now() + INVITE_EXPIRES_HOURS * 60 * 60 * 1000)
-
-//     const invite = await prisma.invitation.create({
-//         data: {
-//             email,
-//             invitedBy: inviterId,
-//             role: role as any,
-//             token,
-//             expiresAt
-//         }
-//     })
-
-//     const link = `http://localhost:3000/register?token=${token}`
-//     await sendMail(
-//         email,
-//         'You are invited',
-//         `You have been invited. Register using this link: ${link}`,
-//         `<p>You have been invited. Register using this link: <a href="${link}">${link}</a></p>`
-//     )
-//     return invite
-// }
-
-// export const registerWithInvitation = async (token: string, name: string, password: string, phone?: string) => {
-//     const invite = await prisma.invitation.findUnique({where: {token}})
-//     if(!invite) throw {status: 400, message: 'Invalid invitation token'}
-//     if(invite.used) throw {status: 400, message: 'Invitation already used'}
-//     if(invite.expiresAt < new Date()) throw {status: 400, message: 'Invitation expired'}
-
-//     const existing = await prisma.user.findUnique({where: {email: invite.email}})
-//     if (existing) throw {status: 400, message: 'User with this email already exists'}
-
-//     const hashed = await hashPassword(password)
-
-//     const user = await prisma.user.create({
-//         data: {
-//             email: invite.email,
-//             name,
-//             password: hashed,
-//             phone: phone ?? null,
-//             role: invite.role,
-//             isVerified: true
-//         }
-//     })
-
-//     await prisma.invitation.update({where: {id: invite.id}, data: {used: true}})
-
-//     const tokenId = crypto.randomUUID()
-//     const refreshJwt = generateRefreshToken(user.id, tokenId)
-//     const tokenHash = await hashPassword(refreshJwt)
-//     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000)
-
-//     await prisma.refreshToken.create({
-//         data: {
-//             id: tokenId,
-//             userId: user.id,
-//             tokenHash,
-//             expiresAt
-//         }
-//     })
-
-//     const accessToken = generateAccessToken(user.id)
-//     return {
-//         user: {
-//             id: user.id,
-//             email: user.email,
-//             role: user.role
-//         }, accessToken, refreshToken: refreshJwt
-//     }
-// }
 
 export const registerWithInvitation = async (invite: any, name: string, password: string, phone?: string) => {
 	const existing = await prisma.user.findUnique({ where: { email: invite.email } })
@@ -116,6 +35,17 @@ export const registerWithInvitation = async (invite: any, name: string, password
 	await axios.post(`${INVITE_SERVICE_URL}/api/v1/invites/mark-used`, {
 		inviteId: invite.id
 	})
+    const inviter = await prisma.user.findUnique({ where: { id: invite.invitedBy } })
+
+    if (inviter) {
+    await publishRegistrationNotification({
+        inviterEmail: inviter.email,
+        inviterName: inviter.name,
+        newUserEmail: user.email,
+        newUserName: user.name,
+        newUserRole: user.role,
+    })
+  }
 
 	const tokenId = crypto.randomUUID()
 	const refreshJwt = generateRefreshToken(user.id, tokenId)
@@ -339,4 +269,33 @@ export const getUserById = async (userId: string) => {
 	}
 
 	return user
+}
+
+const publishRegistrationNotification = async (data: {
+        inviterEmail: string
+        inviterName: string
+        newUserEmail: string
+        newUserName: string
+        newUserRole: string
+    }) => {
+    try {
+        const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://localhost:5672')
+        const channel = await connection.createChannel()
+
+        const queueName = 'user_registration_notifications'
+        await channel.assertQueue(queueName, { durable: true })
+
+        channel.sendToQueue(
+            queueName,
+            Buffer.from(JSON.stringify(data)),
+            { persistent: true }
+        )
+
+        console.log('Registration notification sent to queue')
+
+        await channel.close()
+        await connection.close()
+    } catch (error) {
+        console.error('Error publishing to RabbitMQ:', error)
+    }
 }
