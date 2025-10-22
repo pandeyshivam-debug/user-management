@@ -63,14 +63,57 @@ export const login = async (email: string, password: string, totp?: string) => {
     const ok = await comparePassword(password, user.password)
     if (!ok) throw { status: 400, message: 'Invalid credentials' }
 
-    if(user.totpSecret) {
-        if(!totp) throw { status: 400, message: 'TOTP required' }
-        const validTotp = verifyTOTP(user.totpSecret, totp)
-        if(!validTotp) throw { status: 400, message: 'Invalid TOTP' }
+    if (user.totpSecret) {
+        const tempToken = crypto.randomUUID()
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
+
+        await prisma.otp.create({
+            data: {
+            userId: user.id,
+            code: tempToken,
+            type: '2FA_TEMP',
+            expiresAt,
+            },
+        })
+
+        return { twoFactorRequired: true, tempToken }
     }
 
     const accessToken = generateAccessToken(user.id)
 
+    const tokenId = crypto.randomUUID()
+    const refreshJwt = generateRefreshToken(user.id, tokenId)
+    const tokenHash = await hashPassword(refreshJwt)
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000)
+
+    await prisma.refreshToken.create({
+        data: {
+            id: tokenId,
+            userId: user.id,
+            tokenHash,
+            expiresAt
+        }
+    })
+
+    return { accessToken, refreshToken: refreshJwt }
+}
+
+export const verifyLogin2FA = async (tempToken: string, code: string) => {
+    const temp = await prisma.otp.findFirst({
+        where: { code: tempToken, type: '2FA_TEMP', used: false },
+    })
+    if (!temp || temp.expiresAt < new Date())
+        throw { status: 400, message: 'Invalid or expired session' }
+
+    const user = await prisma.user.findUnique({ where: { id: temp.userId } })
+    if (!user || !user.totpSecret)
+        throw { status: 400, message: 'Invalid user or 2FA not enabled' }
+
+    const valid = verifyTOTP(user.totpSecret, code)
+    if (!valid) throw { status: 400, message: 'Invalid TOTP code' }
+
+    await prisma.otp.update({ where: { id: temp.id }, data: { used: true } })
+    const accessToken = generateAccessToken(user.id)
     const tokenId = crypto.randomUUID()
     const refreshJwt = generateRefreshToken(user.id, tokenId)
     const tokenHash = await hashPassword(refreshJwt)

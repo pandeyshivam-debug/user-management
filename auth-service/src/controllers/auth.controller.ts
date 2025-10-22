@@ -37,6 +37,16 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     }
 }
 
+export const verifyLogin2FA = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { tempToken, code } = req.body
+        const result = await authService.verifyLogin2FA(tempToken, code)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}
+
 export const enable2FA = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const result = await authService.enable2FA(req.user!.id)

@@ -6,6 +6,8 @@ const router: Router = Router()
 
 router.post('/register', ctrl.register)
 router.post('/login', ctrl.login)
+router.post('/2fa/login', ctrl.verifyLogin2FA) 
+
 router.post('/refresh', ctrl.refresh)
 router.post('/password-reset/request', ctrl.requestPasswordReset)
 router.post('/password-reset/confirm', ctrl.confirmPasswordReset)
