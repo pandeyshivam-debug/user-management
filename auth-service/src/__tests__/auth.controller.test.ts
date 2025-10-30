@@ -58,8 +58,8 @@ describe('auth.controller', () => {
 			mockedAxios.post.mockResolvedValueOnce({ data: { invite } })
 
 			;(authService.registerWithInvitation as jest.Mock).mockResolvedValueOnce({
-			id: 'user-1',
-			email: 'a@b.com',
+				id: 'user-1',
+				email: 'a@b.com',
 			})
 
 			const req = {
