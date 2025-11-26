@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express"
 import * as authService from '../services/auth.service'
+import logger from "../utils/logger"
+
 import {
     registerSchema,
     loginSchema,
@@ -14,6 +16,7 @@ import axios from "axios"
 const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL!
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
+    logger.info('Register endpoint called')
     try {
         const parsed = registerSchema.parse(req.body)
         const inviteResponse = await axios.post(`${INVITE_SERVICE_URL}/api/v1/invite/verify`, {
@@ -21,18 +24,23 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         })
         const invite = inviteResponse.data.invite
         const result = await authService.registerWithInvitation(invite, parsed.name, parsed.password, parsed.phone)
+        logger.info('User registered successfully: %s', result.user.email)
         res.json(result)
     } catch (err) {
+        logger.error('Register error: %o', err)
         next(err)
     }
 }
 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
+    logger.info('Login endpoint called')
     try {
         const parsed = loginSchema.parse(req.body)
         const result = await authService.login(parsed.email, parsed.password, parsed.totp)
+        logger.info('Login successful for email: %s', parsed.email)
         res.json(result)
     } catch (err) {
+        logger.error('Login failed for email: %s - %o', req.body.email, err)
         next(err)
     }
 }
@@ -78,6 +86,7 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
 }
 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
+    logger.info('Logout endpoint called')
     try {
         const authHeader = req.header('Authorization')
         const bodyToken = (req.body && (req.body.refreshToken as string)) || null
@@ -85,6 +94,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
         if (token) await authService.revokeRefreshToken(token)
         res.status(204).send()
     } catch (err) {
+        logger.error('Logout error: %o', err)
         next(err)
     }
 }
