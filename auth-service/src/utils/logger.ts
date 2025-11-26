@@ -23,6 +23,14 @@ const LOG_DIR = "logs";
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR);
 
 // -------------------------------
+// CUSTOM PRINT FORMAT
+// -------------------------------
+const customPrintFormat = winston.format.printf(({timestamp, level, message}) => {
+  const levelPadded = `${level}:`.padEnd(10, ' ')
+  return `[${timestamp}] ${levelPadded} ${message}`
+})
+
+// -------------------------------
 //  LOG FORMAT
 // -------------------------------
 const logFormat = winston.format.combine(
@@ -70,7 +78,7 @@ async function uploadToS3(filePath: string) {
 
     console.log("Uploaded to S3:", key);
 
-    // optional: delete after upload
+    // delete after upload
     // fs.unlinkSync(filePath);
 
   } catch (err) {
@@ -78,18 +86,21 @@ async function uploadToS3(filePath: string) {
   }
 }
 
-// -------------------------------
-//  ROTATION HANDLER (RELIABLE)
-// -------------------------------
+/* -------------------------------
+ROTATION HANDLER
+1. Gzip the rotated .log file
+2. Upload the .gz file to S3
+3. Optional: cleanup
+------------------------------- */
 async function handleRotation(oldFilename: string) {
   try {
-    // 1. Gzip the rotated .log file
+    
     const gzFile = await gzipFile(oldFilename);
 
-    // 2. Upload the .gz file to S3
+    
     await uploadToS3(gzFile);
 
-    // 3. Optional: cleanup
+    
     // fs.unlinkSync(oldFilename);
     // fs.unlinkSync(gzFile);
 
@@ -103,14 +114,17 @@ async function handleRotation(oldFilename: string) {
 // -------------------------------
 const rotateTransport = new DailyRotateFile({
   filename: path.join(LOG_DIR, "app-%DATE%.log"),
-  datePattern: "YYYY-MM-DD", // per-minute rotation
-  zippedArchive: false,            // we gzip manually
+  datePattern: "YYYY-MM-DD", 
+  zippedArchive: false,            
   maxSize: "20m",
   maxFiles: "14d",
-  format: logFormat,
+  format: winston.format.combine(
+    winston.format.timestamp({ format: "YYYY-MM-DD hh:mm:ss A" }),
+    customPrintFormat
+  )
 });
 
-// When rotation happens → handle it cleanly
+// When rotation happens, handle it cleanly
 rotateTransport.on("rotate", (oldFile) => {
   handleRotation(oldFile);
 });
@@ -119,14 +133,15 @@ rotateTransport.on("rotate", (oldFile) => {
 //  LOGGER EXPORT
 // -------------------------------
 const logger = winston.createLogger({
-  level: "info",
+  level: process.env.LOG_LEVEL || "info",
   format: logFormat,
   transports: [
     rotateTransport,
     new winston.transports.Console({
       format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
+        winston.format.timestamp({ format: "YYYY-MM-DD hh:mm:ss A" }),
+        winston.format.colorize({ all: true }),
+        customPrintFormat
       ),
     }),
   ],
