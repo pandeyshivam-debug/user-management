@@ -6,6 +6,8 @@ dist
 build
 logs
 
+logs
+
 notes.md
 
 coverage
