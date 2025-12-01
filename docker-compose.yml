@@ -13,20 +13,6 @@ services:
     networks:
       - user-management-network
 
-  # rabbitmq:
-  #   image: rabbitmq:3-management-alpine
-  #   container_name: user-management-rabbitmq
-  #   environment:
-  #     RABBITMQ_DEFAULT_USER: admin
-  #     RABBITMQ_DEFAULT_PASS: admin
-  #   ports:
-  #     - "5672:5672"
-  #     - "15672:15672"
-  #   volumes:
-  #     - rabbitmq_data:/var/lib/rabbitmq
-  #   networks:
-  #     - user-management-network
-
   auth-service:
     build:
       context: ./auth-service
@@ -38,11 +24,8 @@ services:
       - ./auth-service/.env
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:adminadmin@postgres:5432/authDB
-      # - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
       - postgres
-      # - rabbitmq
     networks:
       - user-management-network
     restart: unless-stopped
@@ -58,38 +41,16 @@ services:
       - ./invite-service/.env
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:adminadmin@postgres:5432/authDB
-      # - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
       - postgres
-      # - rabbitmq
     networks:
       - user-management-network
     restart: unless-stopped
-
-  # notification-service:
-  #   build:
-  #     context: ./notification-service
-  #     dockerfile: Dockerfile
-  #   container_name: notification-service
-  #   ports:
-  #     - "3003:3000"
-  #   environment:
-  #     - NODE_ENV=production
-  #     - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/user_management
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #   depends_on:
-  #     - postgres
-  #     - rabbitmq
-  #   networks:
-  #     - user-management-network
-  #   restart: unless-stopped
 
 volumes:
   postgres_data:
     external: true
     name: 55aed6037d31404239a06513433ad66111239e90825ba0c9bc4f09351658f035
-  # rabbitmq_data:
 
 networks:
   user-management-network:
