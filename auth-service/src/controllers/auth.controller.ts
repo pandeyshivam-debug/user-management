@@ -15,6 +15,17 @@ import axios from "axios"
 
 const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL!
 
+export const seedSuperAdmin = async(req: Request, res: Response, next: NextFunction) => {
+    logger.info("API called to seed super user")
+    try {
+        const result = await authService.seedSuperAdmin()
+        res.json(result)
+    } catch(err) {
+        logger.error("Error seeding super admin", err)
+        next(err)
+    }
+}
+
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     logger.info('Register endpoint called')
     try {

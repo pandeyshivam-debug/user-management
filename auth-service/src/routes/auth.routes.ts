@@ -4,6 +4,8 @@ import * as ctrl from '../controllers/auth.controller'
 
 const router: Router = Router()
 
+router.post('/seedSuperAdmin', ctrl.seedSuperAdmin)
+
 router.post('/register', ctrl.register)
 router.post('/login', ctrl.login)
 router.post('/2fa/login', ctrl.verifyLogin2FA) 

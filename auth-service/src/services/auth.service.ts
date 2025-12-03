@@ -13,6 +13,37 @@ const OTP_EXPIRES_MINUTES = 15
 
 const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL ?? 'http://localhost:3002/api/v1/invites'
 
+export const seedSuperAdmin = async() => {
+    const hashed = await hashPassword("adminadmin")
+    const user = await prisma.user.create({
+        data: {
+            email: "super@admin.com",
+            name: "User One",
+            password: hashed
+        }
+    })
+    const tokenId = crypto.randomUUID()
+	const refreshJwt = generateRefreshToken(user.id, tokenId)
+	const tokenHash = await hashPassword(refreshJwt)
+	const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000)
+
+	await prisma.refreshToken.create({
+	data: {
+		id: tokenId,
+		userId: user.id,
+		tokenHash,
+		expiresAt
+	}
+	})
+
+	const accessToken = generateAccessToken(user.id)
+	return {
+		user: { id: user.id, email: user.email, role: user.role },
+		accessToken,
+		refreshToken: refreshJwt
+	}
+}
+
 export const registerWithInvitation = async (invite: any, name: string, password: string, phone?: string) => {
 	const existing = await prisma.user.findUnique({ where: { email: invite.email } })
 	if (existing) throw { status: 400, message: 'User with this email already exists' }
