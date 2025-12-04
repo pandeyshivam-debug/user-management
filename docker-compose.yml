@@ -23,9 +23,11 @@ services:
     env_file:
       - ./auth-service/.env
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
     depends_on:
       - postgres
+    volumes:
+      - api_logs_data:/app/logs
     networks:
       - user-management-network
     restart: unless-stopped
@@ -51,6 +53,7 @@ volumes:
   postgres_data:
     external: true
     name: 55aed6037d31404239a06513433ad66111239e90825ba0c9bc4f09351658f035
+  api_logs_data: {}
 
 networks:
   user-management-network:

@@ -4,6 +4,5 @@ import logger from './utils/logger'
 const PORT = process.env.PORT
 
 app.listen(PORT, () => {
-    // console.log(`Auth service running on PORT ${PORT}`)
-    logger.info(`Auth servicerunning on PORT ${PORT}`)
+    logger.info('Auth service started', { port: PORT, env: process.env.NODE_ENV })
 })

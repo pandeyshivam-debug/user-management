@@ -25,9 +25,15 @@ if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR);
 // -------------------------------
 // CUSTOM PRINT FORMAT
 // -------------------------------
-const customPrintFormat = winston.format.printf(({timestamp, level, message}) => {
+const customPrintFormat = winston.format.printf(info => {
+  const {timestamp, level, message, ...meta} = info
   const levelPadded = `${level}:`.padEnd(10, ' ')
-  return `[${timestamp}] ${levelPadded} ${message}`
+
+  const metaStr = Object.keys(meta).length
+    ? `${JSON.stringify(meta)}`
+    : ""
+
+  return `[${timestamp}] ${levelPadded} ${message} ${metaStr}`
 })
 
 // -------------------------------
@@ -110,11 +116,12 @@ async function handleRotation(oldFilename: string) {
 }
 
 // -------------------------------
-//  WINSTON TRANSPORT (ROTATES EVERY MINUTE)
+//  WINSTON TRANSPORT (ROTATES EVERY DAY/MINUTE)
 // -------------------------------
 const rotateTransport = new DailyRotateFile({
   filename: path.join(LOG_DIR, "app-%DATE%.log"),
   datePattern: "YYYY-MM-DD", 
+  // datePattern: "YYYY-MM-DD-HH-mm", 
   zippedArchive: false,            
   maxSize: "20m",
   maxFiles: "14d",
