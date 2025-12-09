@@ -13,6 +13,12 @@ const allowedInvites: Record<string, string[]> = {
 }
 
 export const createInvitation = async (inviterId: string, email: string, role: string) => {
+	const existing = await prisma.user.findUnique({where: {email: email}})
+	if (existing) {
+		logger.warn('Seeding failed: SUPER_ADMIN already exists', { email: email })
+		throw { status: 400, message: 'User with this email already exixts' }
+	}
+
 	logger.debug('Creating invitation', { inviterId, email, role })
 	const inviter = await prisma.user.findUnique({ where: { id: inviterId } })
 	if (!inviter) {
