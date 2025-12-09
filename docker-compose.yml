@@ -42,7 +42,7 @@ services:
     env_file:
       - ./invite-service/.env
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
     depends_on:
       - postgres
     networks:
