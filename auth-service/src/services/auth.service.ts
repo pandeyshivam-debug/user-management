@@ -15,13 +15,22 @@ const OTP_EXPIRES_MINUTES = 15
 const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL ?? 'http://localhost:3002/api/v1/invites'
 
 export const seedSuperAdmin = async() => {
+    const superAdminEmail = "super@admin.com"
+    logger.debug('Checking for existing user', { email: superAdminEmail })
+	const existing = await prisma.user.findUnique({ where: { email: superAdminEmail } })
+	if (existing) {
+		logger.warn('Seeding failed: SUPER_ADMIN already exists', { email: superAdminEmail })
+		throw { status: 400, message: 'SUPER_ADMIN already seeded in DB' }
+	}
+
     logger.info('Seeding super admin user')
     const hashed = await hashPassword("adminadmin")
     const user = await prisma.user.create({
         data: {
-            email: "super@admin.com",
+            email: superAdminEmail,
             name: "User One",
-            password: hashed
+            password: hashed,
+            role: 'SUPER_ADMIN'
         }
     })
     logger.debug('Super admin user created', { userId: user.id, email: user.email })
