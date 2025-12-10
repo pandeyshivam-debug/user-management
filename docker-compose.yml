@@ -45,6 +45,8 @@ services:
       - NODE_ENV=development
     depends_on:
       - postgres
+    volumes:
+      - api_logs_data:/app/logs
     networks:
       - user-management-network
     restart: unless-stopped
