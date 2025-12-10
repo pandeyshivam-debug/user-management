@@ -33,7 +33,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         const parsed = registerSchema.parse(req.body)
         logger.debug('Validating invitation token', { token: parsed.token.substring(0, 8) + '...' })
         
-        const inviteResponse = await axios.post(`${INVITE_SERVICE_URL}/api/v1/invite/verify`, {
+        const inviteResponse = await axios.post(`${INVITE_SERVICE_URL}/verify`, {
             token: parsed.token
         })
         const invite = inviteResponse.data.invite
@@ -223,4 +223,22 @@ export const me = async (req: Request, res: Response, next: NextFunction) => {
         logger.error('Failed to fetch user profile', { userId: req.user?.id, error: err.message })
         next(err)
     }
+}
+
+export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+    logger.info("Delete user request received", { userId: req.user?.id })
+    try {
+        const role = req.user?.role
+        const email = req.body?.email
+
+        if (!email || typeof email !== 'string') {
+            logger.warn('Delete user attempted without email', { userId: req.user?.id })
+            return res.status(400).json({ message: 'Bad Request: email required' })
+        }
+
+        await authService.deleteUser(role!, email)
+        res.json({ message: "Deleted" })
+    } catch(err: any) {
+        next(err)
+    } 
 }

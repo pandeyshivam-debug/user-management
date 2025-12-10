@@ -15,7 +15,7 @@ const allowedInvites: Record<string, string[]> = {
 export const createInvitation = async (inviterId: string, email: string, role: string) => {
 	const existing = await prisma.user.findUnique({where: {email: email}})
 	if (existing) {
-		logger.warn('Seeding failed: SUPER_ADMIN already exists', { email: email })
+		logger.warn('Invite not sent: user already exists', { email: email })
 		throw { status: 400, message: 'User with this email already exixts' }
 	}
 

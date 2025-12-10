@@ -12,7 +12,14 @@ import { sendMail } from '../utils/mailer'
 const REFRESH_TOKEN_EXPIRES_DAYS = 7
 const OTP_EXPIRES_MINUTES = 15
 
-const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL ?? 'http://localhost:3002/api/v1/invites'
+const INVITE_SERVICE_URL: string = process.env.INVITE_SERVICE_URL ?? 'http://invite-service:3002/api/v1/invite'
+
+const deleteAccess: Record<string, string[]> = {
+    'SUPER_ADMIN': ['SITE_ADMIN', 'OPERATOR', 'CLIENT_ADMIN', 'CLIENT_USER'],
+	'SITE_ADMIN': ['OPERATOR', 'CLIENT_ADMIN'],
+	'OPERATOR': ['CLIENT_ADMIN'],
+	'CLIENT_ADMIN': ['CLIENT_USER']
+}
 
 export const seedSuperAdmin = async() => {
     const superAdminEmail = "super@admin.com"
@@ -82,7 +89,7 @@ export const registerWithInvitation = async (invite: any, name: string, password
 
 	// Mark invitation as used via invite service
 	logger.debug('Marking invitation as used', { inviteId: invite.id })
-	await axios.post(`${INVITE_SERVICE_URL}/api/v1/invites/mark-used`, {
+	await axios.post(`${INVITE_SERVICE_URL}/mark-used`, {
 		inviteId: invite.id
 	})
 
@@ -344,7 +351,7 @@ export const requestLoginOTP = async (email: string) => {
     logger.debug('Processing login OTP request', { email })
     const user = await prisma.user.findUnique({ where: { email } })
     if(!user) {
-        logger.debug('Login OTP request: user not found (not revealing)', { email })
+        logger.debug('Login OTP request: user not found', { email })
         return
     }
 
@@ -442,4 +449,32 @@ export const getUserById = async (userId: string) => {
 
 	logger.debug('User retrieved successfully', { userId, email: user.email })
 	return user
+}
+
+export const deleteUser = async (role: string, email: string) => {
+    logger.debug('Deleting user', { byRole: role, email })
+
+    const allowedToDelete = deleteAccess[role]
+    if (!allowedToDelete) {
+        logger.warn('Delete user attempted by role with no delete rights', { role })
+        throw { status: 403, message: 'Forbidden' }
+    }
+
+    // check if user exists
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (!existing) {
+        logger.warn('Deleting failed: no such user exists', { email })
+        throw { status: 404, message: 'No such user found' }
+    }
+
+    // prevent deleting users with roles not permitted for the requesting role
+    const targetRole = existing.role 
+    if (!allowedToDelete.includes(targetRole)) {
+        logger.warn('Delete user forbidden: insufficient privileges', { byRole: role, targetRole, email })
+        throw { status: 403, message: 'Forbidden: insufficient privileges to delete this user' }
+    }
+
+    await prisma.user.delete({ where: { email } })
+    logger.info('User deleted', { email, targetRole })
+    return {}
 }
