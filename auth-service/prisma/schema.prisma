@@ -35,7 +35,7 @@ model Invitation {
     id         String   @id @default(uuid())
     email      String
     invitedBy  String
-    Inviter    User     @relation("InvitedBy", fields: [invitedBy], references: [id])
+    Inviter    User     @relation("InvitedBy", fields: [invitedBy], references: [id], onDelete: Cascade)
     role       Role
     used       Boolean  @default(false)
     token      String   @unique
@@ -46,7 +46,7 @@ model Invitation {
 model RefreshToken {
     id           String   @id @default(uuid())
     userId       String
-    User         User     @relation(fields: [userId], references: [id])
+    User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     tokenHash    String
     revoked      Boolean  @default(false)
     createdAt    DateTime @default(now())
@@ -57,7 +57,7 @@ model RefreshToken {
 model otp {
     id        Int      @id @default(autoincrement())
     userId    String
-    User      User     @relation(fields: [userId], references: [id])
+    User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     code      String
     type      String
     used      Boolean  @default(false)
